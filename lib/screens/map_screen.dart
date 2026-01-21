@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_amrit/models/platform.dart';
+import 'package:flutter_amrit/screens/platform_detail_screen.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -140,17 +142,43 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       {'lat': 40.4, 'lon': -3.7, 'status': 'INACTIVE'}, // Madrid
     ];
 
-    for (final platform in mockPlatforms) {
-      final lat = platform['lat']! as double;
-      final lon = platform['lon']! as double;
-      final status = platform['status']! as String;
+    for (final platformData in mockPlatforms) {
+      final lat = platformData['lat']! as double;
+      final lon = platformData['lon']! as double;
+      final statusStr = platformData['status']! as String;
+      final point = LatLng(lat, lon);
+
       markers.add(
         Marker(
-          point: LatLng(lat, lon),
-          child: Icon(
-            Icons.location_on,
-            color: status == 'OPERATIONAL' ? Colors.green : Colors.red,
-            size: 30,
+          point: point,
+          child: GestureDetector(
+            onTap: () {
+              final platform = Platform(
+                id: 'PLT-${lat.hashCode.toString().substring(0, 5)}',
+                model: 'Weather Sensor',
+                network: 'Argo',
+                latestPosition: point,
+                status: statusStr == 'OPERATIONAL'
+                    ? PlatformStatus.active
+                    : PlatformStatus.inactive,
+                operationalStatus: OperationalStatus.deployed,
+                lastUpdated: DateTime.now(),
+                operationLocation: point,
+              );
+              unawaited(
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) =>
+                        PlatformDetailScreen(platform: platform),
+                  ),
+                ),
+              );
+            },
+            child: Icon(
+              Icons.location_on,
+              color: statusStr == 'OPERATIONAL' ? Colors.green : Colors.red,
+              size: 30,
+            ),
           ),
         ),
       );
