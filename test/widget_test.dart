@@ -1,29 +1,48 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
+import 'package:flutter_amrit/database/db.dart';
+import 'package:flutter_amrit/database/db_connection.dart' as conn;
 import 'package:flutter_amrit/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('App smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    final db = AppDatabase.executor(conn.inMemoryConnection());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(MyApp(database: db));
+    await tester.pump(const Duration(milliseconds: 500));
+    // Verify that our app shows the SmartTags title.
+    expect(find.text('SmartTags'), findsAtLeast(1));
+    await db.close();
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  testWidgets('Test added content is visible on the Map', (WidgetTester tester) async {
+    final db = AppDatabase.executor(conn.inMemoryConnection());
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Add a test platform
+    await db
+        .into(db.platforms)
+        .insert(
+          PlatformsCompanion.insert(
+            ref: 'MAP-TEST-001',
+            model: 'Test Sensor',
+            network: 'TestNet',
+            lat: 45,
+            lon: -5,
+            status: 'Active',
+            operationalStatus: 'Deployed',
+            lastUpdated: DateTime.now(),
+            operationLat: 45,
+            operationLon: -5,
+          ),
+        );
+
+    await tester.pumpWidget(MyApp(database: db));
+    await tester.pump(const Duration(milliseconds: 500)); // Wait for StreamBuilder
+
+    // Verify that the marker is visible (using the location_on icon)
+    expect(find.byIcon(Icons.location_on), findsOneWidget);
+
+    await db.close();
   });
 }

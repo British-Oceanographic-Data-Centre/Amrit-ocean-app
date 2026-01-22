@@ -88,10 +88,9 @@ class PlatformDetailScreen extends StatelessWidget {
                         ),
                         child: Text(
                           'Latest position',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -131,12 +130,8 @@ class PlatformDetailScreen extends StatelessWidget {
                   const Divider(height: 16),
                   _MetadataRow(
                     label: 'Status',
-                    value: platform.status == PlatformStatus.active
-                        ? 'Active'
-                        : 'Inactive',
-                    valueColor: platform.status == PlatformStatus.active
-                        ? Colors.green
-                        : Colors.red,
+                    value: platform.status == PlatformStatus.active ? 'Active' : 'Inactive',
+                    valueColor: platform.status == PlatformStatus.active ? Colors.green : Colors.red,
                   ),
                 ],
               ),
@@ -157,23 +152,16 @@ class PlatformDetailScreen extends StatelessWidget {
                   const Divider(height: 24),
                   _MetadataRow(
                     label: 'Operational Status',
-                    value:
-                        platform.operationalStatus == OperationalStatus.deployed
-                        ? 'Deployed'
-                        : 'Recovered',
-                    valueColor:
-                        platform.operationalStatus == OperationalStatus.deployed
-                        ? Colors.blue
-                        : Colors.orange,
+                    value: platform.operationalStatus == OperationalStatus.deployed ? 'Deployed' : 'Recovered',
+                    valueColor: platform.operationalStatus == OperationalStatus.deployed ? Colors.blue : Colors.orange,
                   ),
                   const Divider(height: 16),
                   _MetadataRow(
                     label: 'Last updated',
                     value:
-                        DateFormat(
+                        '${DateFormat(
                           'MMM dd, yyyy, hh:mm a',
-                        ).format(platform.lastUpdated) +
-                        ' UTC',
+                        ).format(platform.lastUpdated)} UTC',
                   ),
                   const Divider(height: 16),
                   _MetadataRow(

@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_amrit/models/platform.dart';
+import 'package:flutter_amrit/database/db.dart';
+import 'package:flutter_amrit/models/platform.dart' as model;
 import 'package:flutter_amrit/screens/platform_detail_screen.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -10,7 +11,10 @@ import 'package:latlong2/latlong.dart';
 /// A screen displaying an interactive ocean map with markers.
 class MapScreen extends StatefulWidget {
   /// Creates a [MapScreen] widget.
-  const MapScreen({super.key});
+  const MapScreen({required this.database, super.key});
+
+  /// The local database instance.
+  final AppDatabase database;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -120,7 +124,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
-  List<Marker> _buildMarkers() {
+  List<Marker> _buildMarkers(List<Platform> databasePlatforms) {
     final markers = <Marker>[];
 
     // Add current location marker if available
@@ -135,48 +139,41 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       );
     }
 
-    // Mock platform markers for demonstration
-    final mockPlatforms = [
-      {'lat': 51.5, 'lon': -0.1, 'status': 'OPERATIONAL'}, // London
-      {'lat': 48.8, 'lon': 2.3, 'status': 'OPERATIONAL'}, // Paris
-      {'lat': 40.4, 'lon': -3.7, 'status': 'INACTIVE'}, // Madrid
-    ];
-
-    for (final platformData in mockPlatforms) {
-      final lat = platformData['lat']! as double;
-      final lon = platformData['lon']! as double;
-      final statusStr = platformData['status']! as String;
-      final point = LatLng(lat, lon);
+    // Use platforms from the database
+    for (final dbPlatform in databasePlatforms) {
+      final point = LatLng(dbPlatform.lat, dbPlatform.lon);
 
       markers.add(
         Marker(
           point: point,
           child: GestureDetector(
             onTap: () {
-              final platform = Platform(
-                id: 'PLT-${lat.hashCode.toString().substring(0, 5)}',
-                model: 'Weather Sensor',
-                network: 'Argo',
+              final platformModel = model.Platform(
+                id: dbPlatform.ref,
+                model: dbPlatform.model,
+                network: dbPlatform.network,
                 latestPosition: point,
-                status: statusStr == 'OPERATIONAL'
-                    ? PlatformStatus.active
-                    : PlatformStatus.inactive,
-                operationalStatus: OperationalStatus.deployed,
-                lastUpdated: DateTime.now(),
-                operationLocation: point,
+                status: dbPlatform.status == 'Active' ? model.PlatformStatus.active : model.PlatformStatus.inactive,
+                operationalStatus: dbPlatform.operationalStatus == 'Deployed'
+                    ? model.OperationalStatus.deployed
+                    : model.OperationalStatus.recovered,
+                lastUpdated: dbPlatform.lastUpdated,
+                operationLocation: LatLng(
+                  dbPlatform.operationLat,
+                  dbPlatform.operationLon,
+                ),
               );
               unawaited(
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (context) =>
-                        PlatformDetailScreen(platform: platform),
+                    builder: (context) => PlatformDetailScreen(platform: platformModel),
                   ),
                 ),
               );
             },
             child: Icon(
               Icons.location_on,
-              color: statusStr == 'OPERATIONAL' ? Colors.green : Colors.red,
+              color: dbPlatform.status == 'Active' ? Colors.green : Colors.red,
               size: 30,
             ),
           ),
@@ -207,30 +204,36 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-      body: FlutterMap(
-        mapController: _mapController,
-        options: const MapOptions(
-          initialCenter: _defaultCenter,
-          initialZoom: _defaultZoom,
-        ),
-        children: [
-          // Ocean Base Tiles
-          TileLayer(
-            urlTemplate:
-                'https://server.arcgisonline.com/ArcGIS/rest/services/'
-                'Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
-            userAgentPackageName: 'com.example.flutter_amrit',
-          ),
-          // Ocean Reference Tiles (labels)
-          TileLayer(
-            urlTemplate:
-                'https://server.arcgisonline.com/ArcGIS/rest/services/'
-                'Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',
-            userAgentPackageName: 'com.example.flutter_amrit',
-          ),
-          // Markers
-          MarkerLayer(markers: _buildMarkers()),
-        ],
+      body: StreamBuilder<List<Platform>>(
+        stream: widget.database.select(widget.database.platforms).watch(),
+        builder: (context, snapshot) {
+          final platforms = snapshot.data ?? [];
+          return FlutterMap(
+            mapController: _mapController,
+            options: const MapOptions(
+              initialCenter: _defaultCenter,
+              initialZoom: _defaultZoom,
+            ),
+            children: [
+              // Ocean Base Tiles
+              TileLayer(
+                urlTemplate:
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/'
+                    'Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
+                userAgentPackageName: 'com.example.flutter_amrit',
+              ),
+              // Ocean Reference Tiles (labels)
+              TileLayer(
+                urlTemplate:
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/'
+                    'Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',
+                userAgentPackageName: 'com.example.flutter_amrit',
+              ),
+              // Markers
+              MarkerLayer(markers: _buildMarkers(platforms)),
+            ],
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton.small(
         onPressed: _centerOnLocation,
