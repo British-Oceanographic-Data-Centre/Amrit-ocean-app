@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_amrit/helpers/location/location_fetcher.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -54,9 +55,21 @@ void main() {
         });
 
     final fetcher = LocationFetcher();
-    final loc = await fetcher.getUserLocation();
+    final printed = <String>[];
+    final loc = await runZoned(
+      // Used to capture stdout prints
+      () async {
+        return fetcher.getUserLocation();
+      },
+      zoneSpecification: ZoneSpecification(
+        print: (self, parent, zone, line) {
+          printed.add(line);
+        },
+      ),
+    );
 
     expect(loc, isNull);
+    expect(printed, contains('Location permission denied.'));
 
     // Clean up the mock.
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -77,9 +90,21 @@ void main() {
         });
 
     final fetcher = LocationFetcher();
-    final loc = await fetcher.getUserLocation();
+    final printed = <String>[];
+    final loc = await runZoned(
+      // Used to capture stdout prints
+      () async {
+        return fetcher.getUserLocation();
+      },
+      zoneSpecification: ZoneSpecification(
+        print: (self, parent, zone, line) {
+          printed.add(line);
+        },
+      ),
+    );
 
     expect(loc, isNull);
+    expect(printed, contains('Location permission permanently denied.'));
 
     // Clean up the mock.
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
