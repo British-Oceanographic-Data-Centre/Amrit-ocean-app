@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:smart_tags/models/platform.dart';
+import 'package:smart_tags/screens/platform_detail_screen.dart';
 
 /// A screen that provides QR code scanning functionality.
 class QrScanScreen extends StatefulWidget {
@@ -53,32 +56,22 @@ class _QrScanScreenState extends State<QrScanScreen> {
     setState(() => _isProcessing = true);
     await _scannerController.stop();
 
-    // Show dialog with scanned reference
+    // Navigate to detail screen with mock data
     if (mounted) {
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('QR Code Scanned'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Platform Reference:'),
-              const SizedBox(height: 8),
-              SelectableText(
-                reference,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
+      final mockPlatform = Platform(
+        id: reference,
+        model: 'Weather Sensor',
+        network: 'Satellite',
+        latestPosition: const LatLng(-12.345, 34.686),
+        status: PlatformStatus.active,
+        operationalStatus: OperationalStatus.recovered,
+        lastUpdated: DateTime(2024, 4, 24, 10, 15),
+        operationLocation: const LatLng(54.978, -1.661),
+      );
+
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => PlatformDetailScreen(platform: mockPlatform),
         ),
       );
     }
@@ -104,9 +97,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
               valueListenable: _scannerController,
               builder: (context, state, child) {
                 return Icon(
-                  state.torchState == TorchState.on
-                      ? Icons.flash_on
-                      : Icons.flash_off,
+                  state.torchState == TorchState.on ? Icons.flash_on : Icons.flash_off,
                 );
               },
             ),
@@ -251,6 +242,5 @@ class _QrScannerOverlay extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_QrScannerOverlay oldDelegate) =>
-      borderColor != oldDelegate.borderColor;
+  bool shouldRepaint(_QrScannerOverlay oldDelegate) => borderColor != oldDelegate.borderColor;
 }
