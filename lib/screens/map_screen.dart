@@ -83,13 +83,16 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   Future<void> _centerOnLocation(BuildContext context) async {
     final location = await _getCurrentLocation();
-    if (location != null) _setCurrentLocation(location);
+    if (location != null) {_setCurrentLocation(location);}
+    else if (context.mounted) {
+      _showToast(context, 'Unable to fetch current location', 'Close');
+    }
+    // Move to current location.
+    // This will use the last previous known location if fetching fails.
     if (_currentLocation != null) {
       _mapController.move(_currentLocation!, 10);
       // Call the onLocationCentered callback with location.
       widget.onLocationCentered?.call(_currentLocation!);
-    } else if (context.mounted) {
-      _showToast(context, 'Unable to fetch location', 'Close');
     }
   }
 
